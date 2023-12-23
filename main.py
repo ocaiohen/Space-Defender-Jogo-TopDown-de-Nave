@@ -1,6 +1,7 @@
 import pygame
 from pygame import mixer
 import math
+import random
 
 pygame.init()
 
@@ -58,7 +59,6 @@ class Player(pygame.sprite.Sprite):
         self.deltaY = (self.mouseCoordinates[1] - self.rect.centery)
         self.angle = math.degrees(math.atan2(-self.deltaY, self.deltaX))
         self.image = pygame.transform.rotate(self.baseImage, self.angle)
-        self.image.set_colorkey((255, 255, 255))
         self.rect = self.image.get_rect(center=self.rect.center)
 
     def getRotatedPoint(self, relativePoint):
@@ -85,7 +85,8 @@ class Bullet(pygame.sprite.Sprite):
         self.x, self.y = self.startPositionX, self.startPositionY
         self.image = pygame.image.load("./Sprites/Bullet.png").convert_alpha()
         self.image = pygame.transform.rotozoom(self.image, 0, 0.03)
-        self.image.set_colorkey((255, 255, 255))
+        self.transparencyColor = self.image.get_at((0,0))
+        self.image.set_colorkey(self.transparencyColor)
         self.rect = self.image.get_rect()
         self.rect.center = (self.x, self.y)
         self.speed = 9
@@ -105,13 +106,111 @@ class Bullet(pygame.sprite.Sprite):
     def update(self):
         self.move()
         self.getOld()
-        
+
+class EnemyBullet(pygame.sprite.Sprite):
+    def __init__(self, startPositionX, startPositionY, angle):
+        super().__init__()
+        self.startPositionX, self.startPositionY, self.angle = startPositionX, startPositionY, angle
+        self.x, self.y = self.startPositionX, self.startPositionY
+        self.image = pygame.image.load("./Sprites/Enemy Bullet.png").convert_alpha()
+        self.image = pygame.transform.rotozoom(self.image, 0, 0.03)
+        self.transparencyColor = self.image.get_at((0,0))
+        self.image.set_colorkey(self.transparencyColor)
+        self.rect = self.image.get_rect()
+        self.rect.center = (self.x, self.y)
+        self.speed = 9
+        self.velocityY = math.sin(self.angle * (2 * math.pi / 360)) * self.speed
+        self.velocityX = math.cos(self.angle * (2 * math.pi / 360)) * self.speed
+        self.lifetime = fps * 3.5 
+        self.age = 0
+    
+    def move(self):
+        self.x += self.velocityX
+        self.y += self.velocityY
+
+        self.rect.x, self.rect.y = self.x, self.y
+    def getOld(self):
+        self.age += 1
+        if self.age >= self.lifetime: self.kill()
+    def update(self):
+        self.move()
+        self.getOld()
+class EnemyShooter(pygame.sprite.Sprite):
+    def __init__(self, startX, startY, shootPoint):
+        self.position = pygame.math.Vector2(startX, startY)
+        self.shootPoint = shootPoint
+        self.size = 0.1
+        self.image = pygame.transform.rotozoom(pygame.image.load("./Sprites/Nave-Inimiga-Shooter.png").convert_alpha(), 0, self.size)
+        self.baseImage = self.image
+        self.rect = self.image.get_rect(center=self.position)
+        self.speed = 5
+        self.timeOfLastShot = 0
+        super().__init__()
+    def rotateToPlayer(self):
+        self.playerCoordinates = player.playerPosition
+        self.deltaX = (self.playerCoordinates[0] - self.rect.centerx)
+        self.deltaY = (self.playerCoordinates[1] - self.rect.centery)
+        self.angle = math.degrees(math.atan2(-self.deltaY, self.deltaX))
+        self.image = pygame.transform.rotate(self.baseImage, self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
+        pass
+    def tryToShoot(self):
+        cooldown = int(random.randrange(fps * 1, 5 * fps))
+        if self.timeOfLastShot >= cooldown:
+            self.shoot()
+            self.timeOfLastShot = 0
+    def getRotatedPoint(self, relativePoint):
+        rotatedVector = pygame.math.Vector2(relativePoint).rotate(-self.angle)
+        return self.rect.center + rotatedVector
+
+    def shoot(self):
+        bulletStartPoint = self.getRotatedPoint((self.image.get_width() / 2, 0))  # Extremidade no meio do lado direito
+        bullet = EnemyBullet(bulletStartPoint.x, bulletStartPoint.y, -self.angle)
+        enemiesGroup.add(bullet)
+        allSpritesGroup.add(bullet)
+        playerShotSound.play()
+
+    def moveToShootPoint(self):
+        pass
+    def update(self):
+        if int(self.position[0]) != int(self.shootPoint[0]) and  int(self.position[1]) != int(self.shootPoint[1]):
+            self.moveToShootPoint()
+        self.rotateToPlayer()
+        self.tryToShoot()
+        self.timeOfLastShot += 1
+
+
+def writeSomething(fontstyle, fontsize, textContent, color, x, y, screen):
+     font = pygame.font.SysFont(f"{fontstyle}", fontsize)
+     text = font.render(f"{textContent}", True, color)
+     screen.blit(text, [x, y])
+
+def generateEnemyShooter():
+    pass
+
+def checkIfPlayerGotHit(playerGroup, enemiesGroup):
+    collisions = pygame.sprite.groupcollide(enemiesGroup, playerGroup, False, False)
+    if collisions: return True
+    else: return False
+
+def checkIfEnemiesGotHit(enemiesGroup, bulletsGroup):
+    collisions = pygame.sprite.groupcollide(enemiesGroup, bulletsGroup, True, True)
+    if collisions: return True
+    else: return False
+
 
 player = Player()
-
+enemy1 = EnemyShooter(200, 200, (500, 500))
 allSpritesGroup = pygame.sprite.Group()
+playerGroup = pygame.sprite.Group()
+playerGroup.add(player)
 bulletsGroup = pygame.sprite.Group()
+enemiesGroup = pygame.sprite.Group()
 allSpritesGroup.add(player)
+allSpritesGroup.add(enemy1)
+enemiesGroup.add(enemy1)
+
+background = pygame.transform.scale(pygame.image.load("./Sprites/pexels-instawalli-176851.jpg").convert(), (screenWidth, screenHeight))
 
 endTheGame = False
 while not endTheGame:
@@ -119,10 +218,12 @@ while not endTheGame:
         if event.type == pygame.QUIT:
             endTheGame = True
 
-    screen.fill((0, 0, 0))
+
+    screen.blit(background, (0,0))
     allSpritesGroup.draw(screen)
     allSpritesGroup.update()
-
+    if checkIfPlayerGotHit(playerGroup, enemiesGroup): endTheGame = True
+    checkIfEnemiesGotHit(enemiesGroup, bulletsGroup)
     pygame.display.update()
     clock.tick(fps)
 
