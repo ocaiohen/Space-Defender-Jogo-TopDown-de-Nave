@@ -14,6 +14,21 @@ fps = 60
 mixer.init()
 playerShotSound = mixer.Sound("./Sounds/170161__timgormly__8-bit-laser.mp3")
 
+class EnemyGenerator():
+    def __init__(self):
+        self.maxNumberOfShooters = 1
+        self.timeForIncreaseMaxShooters = 10
+        pass
+    def generateRandomPositionOffScreen(self):
+        pass
+    def createShooter(self):
+        pass
+    def createKamikaze(self):
+        pass
+    def createAsteroid(self):
+        pass
+    def update(self):
+        pass
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -159,6 +174,40 @@ class EnemyShooter(pygame.sprite.Sprite):
         self.tryToShoot()
         self.timeOfLastShot += 1
 
+class EnemyKamikaze(pygame.sprite.Sprite):
+    def __init__(self, startX, startY):
+        super().__init__()
+        self.position = pygame.math.Vector2(startX, startY)
+        self.size = 0.15
+        self.image = pygame.transform.rotozoom(pygame.image.load("./Sprites/Nave-Inimiga-Kamikaze.png").convert_alpha(), 0, self.size)
+        self.baseImage = self.image
+        self.rect = self.image.get_rect(center=self.position)
+        self.speed = 3
+
+    def rotateAndMoveToPlayer(self):
+        self.playerCoordinates = player.playerPosition
+        self.deltaX = self.playerCoordinates[0] - self.rect.centerx
+        self.deltaY = self.playerCoordinates[1] - self.rect.centery
+
+        # Calcular o ângulo em radianos
+        angleRadians = math.atan2(self.deltaY, self.deltaX)
+
+        # Calcular o vetor de movimento
+        self.vX = self.speed * math.cos(angleRadians)
+        self.vY = self.speed * math.sin(angleRadians)
+
+        # Atualizar a posição
+        self.position[0] += self.vX 
+        self.position[1] += self.vY
+
+        # Atualizar a rotação
+        self.angle = math.degrees(angleRadians)
+        self.image = pygame.transform.rotate(self.baseImage, -self.angle)  # Corrigir a rotação
+        self.rect = self.image.get_rect(center=self.position)
+
+    def update(self):
+        print("a")
+        self.rotateAndMoveToPlayer()
 
 def writeSomething(fontstyle, fontsize, textContent, color, x, y, screen):
      font = pygame.font.SysFont(f"{fontstyle}", fontsize)
@@ -179,15 +228,15 @@ def checkIfEnemiesGotHit(enemiesGroup, bulletsGroup):
     else: return False
 
 player = Player()
-enemy1 = EnemyShooter(200, 200, (500, 500))
+kamikaze = EnemyKamikaze(200,200)
 allSpritesGroup = pygame.sprite.Group()
 playerGroup = pygame.sprite.Group()
 playerGroup.add(player)
 bulletsGroup = pygame.sprite.Group()
 enemiesGroup = pygame.sprite.Group()
 allSpritesGroup.add(player)
-allSpritesGroup.add(enemy1)
-enemiesGroup.add(enemy1)
+enemiesGroup.add(kamikaze)
+allSpritesGroup.add(kamikaze)
 
 background = pygame.transform.scale(pygame.image.load("./Sprites/pexels-instawalli-176851.jpg").convert(), (screenWidth, screenHeight))
 
