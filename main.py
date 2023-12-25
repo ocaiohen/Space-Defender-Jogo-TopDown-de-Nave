@@ -107,34 +107,14 @@ class Bullet(pygame.sprite.Sprite):
         self.move()
         self.getOld()
 
-class EnemyBullet(pygame.sprite.Sprite):
+class EnemyBullet(Bullet):
     def __init__(self, startPositionX, startPositionY, angle):
-        super().__init__()
-        self.startPositionX, self.startPositionY, self.angle = startPositionX, startPositionY, angle
-        self.x, self.y = self.startPositionX, self.startPositionY
+        super().__init__(startPositionX, startPositionY, angle)
         self.image = pygame.image.load("./Sprites/Enemy Bullet.png").convert_alpha()
         self.image = pygame.transform.rotozoom(self.image, 0, 0.03)
         self.transparencyColor = self.image.get_at((0,0))
         self.image.set_colorkey(self.transparencyColor)
-        self.rect = self.image.get_rect()
-        self.rect.center = (self.x, self.y)
-        self.speed = 9
-        self.velocityY = math.sin(self.angle * (2 * math.pi / 360)) * self.speed
-        self.velocityX = math.cos(self.angle * (2 * math.pi / 360)) * self.speed
-        self.lifetime = fps * 3.5 
-        self.age = 0
-    
-    def move(self):
-        self.x += self.velocityX
-        self.y += self.velocityY
-
-        self.rect.x, self.rect.y = self.x, self.y
-    def getOld(self):
-        self.age += 1
-        if self.age >= self.lifetime: self.kill()
-    def update(self):
-        self.move()
-        self.getOld()
+  
 class EnemyShooter(pygame.sprite.Sprite):
     def __init__(self, startX, startY, shootPoint):
         self.position = pygame.math.Vector2(startX, startY)
@@ -198,7 +178,6 @@ def checkIfEnemiesGotHit(enemiesGroup, bulletsGroup):
     if collisions: return True
     else: return False
 
-
 player = Player()
 enemy1 = EnemyShooter(200, 200, (500, 500))
 allSpritesGroup = pygame.sprite.Group()
@@ -217,7 +196,6 @@ while not endTheGame:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             endTheGame = True
-
 
     screen.blit(background, (0,0))
     allSpritesGroup.draw(screen)
