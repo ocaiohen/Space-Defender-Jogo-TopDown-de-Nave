@@ -139,6 +139,7 @@ class EnemyShooter(pygame.sprite.Sprite):
     def __init__(self, startX, startY, shootPoint):
         self.position = pygame.math.Vector2(startX, startY)
         self.shootPoint = shootPoint
+        self.distanceToSPToShoot = 100
         self.size = 0.1
         self.image = pygame.transform.rotozoom(pygame.image.load("./Sprites/Nave-Inimiga-Shooter.png").convert_alpha(), 0, self.size)
         self.baseImage = self.image
@@ -190,7 +191,9 @@ class EnemyShooter(pygame.sprite.Sprite):
             self.moveToShootPoint()
         pygame.draw.rect(screen, "red", self.rect, width=2)
         self.rotateToPlayer()
-        self.tryToShoot()
+        if abs(self.position[0] - self.shootPoint[0]) <= self.distanceToSPToShoot and abs(self.position[1] - self.shootPoint[1]) <= self.distanceToSPToShoot:
+            print("C")
+            self.tryToShoot()
         self.timeOfLastShot += 1
 
 class EnemyKamikaze(pygame.sprite.Sprite):
@@ -232,9 +235,6 @@ def writeSomething(fontstyle, fontsize, textContent, color, x, y, screen):
      font = pygame.font.SysFont(f"{fontstyle}", fontsize)
      text = font.render(f"{textContent}", True, color)
      screen.blit(text, [x, y])
-
-def generateEnemyShooter():
-    pass
 
 def checkIfPlayerGotHit(playerGroup, enemiesGroup):
     collisions = pygame.sprite.groupcollide(enemiesGroup, playerGroup, False, False)
