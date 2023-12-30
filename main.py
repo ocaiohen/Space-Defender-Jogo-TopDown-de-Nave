@@ -16,9 +16,13 @@ playerShotSound = mixer.Sound("./Sounds/170161__timgormly__8-bit-laser.mp3")
 
 class EnemyGenerator():
     def __init__(self):
-        self.maxNumberOfShooters = 1
-        self.timeForIncreaseMaxShooters = 10
-        pass
+        self.maxNumberOfShooters = 2
+        self.maxNumberOfKamikazes = 2
+        self.timeForIncreaseMaxShooters = 13
+        self.timeForIncreaseMaxKamikazes = 11
+        self.numberOfAnyEnemiesKilled = 0
+        self.numberOfShootersKilled = 0
+        self.numberOfKamikazesKilled = 0
     def generateRandomPositionOffScreen(self):
         pass
     def createShooter(self):
@@ -91,6 +95,7 @@ class Player(pygame.sprite.Sprite):
         self.userInput()
         self.move()
         self.playerRotation()
+        pygame.draw.rect(screen, "red", player.rect, width=2)
         self.timeOfLastShot += 1
 
 class Bullet(pygame.sprite.Sprite):
@@ -138,7 +143,8 @@ class EnemyShooter(pygame.sprite.Sprite):
         self.image = pygame.transform.rotozoom(pygame.image.load("./Sprites/Nave-Inimiga-Shooter.png").convert_alpha(), 0, self.size)
         self.baseImage = self.image
         self.rect = self.image.get_rect(center=self.position)
-        self.speed = 5
+        self.speed = 1
+        self.vX, self.vY = 0, 0
         self.timeOfLastShot = 0
         super().__init__()
     def rotateToPlayer(self):
@@ -166,10 +172,23 @@ class EnemyShooter(pygame.sprite.Sprite):
         playerShotSound.play()
 
     def moveToShootPoint(self):
-        pass
+        self.deltaXtoSP = (self.shootPoint[0] - self.position[0])
+        self.deltaYtoSP = (self.shootPoint[1] - self.position[1])
+
+        angleRadians = math.atan2(self.deltaYtoSP, self.deltaXtoSP)
+
+        self.vX = self.speed * math.cos(angleRadians)
+        self.vY = self.speed * math.sin(angleRadians)
+
+        self.position[0] += self.vX 
+        self.position[1] += self.vY
+
+        self.rect = self.image.get_rect(center=self.position)
+
     def update(self):
         if int(self.position[0]) != int(self.shootPoint[0]) and  int(self.position[1]) != int(self.shootPoint[1]):
             self.moveToShootPoint()
+        pygame.draw.rect(screen, "red", self.rect, width=2)
         self.rotateToPlayer()
         self.tryToShoot()
         self.timeOfLastShot += 1
@@ -206,8 +225,8 @@ class EnemyKamikaze(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.position)
 
     def update(self):
-        print("a")
         self.rotateAndMoveToPlayer()
+        pygame.draw.rect(screen, "red", self.rect, width=2)
 
 def writeSomething(fontstyle, fontsize, textContent, color, x, y, screen):
      font = pygame.font.SysFont(f"{fontstyle}", fontsize)
@@ -228,15 +247,15 @@ def checkIfEnemiesGotHit(enemiesGroup, bulletsGroup):
     else: return False
 
 player = Player()
-kamikaze = EnemyKamikaze(200,200)
+enemy = EnemyShooter(200,200, (500,500))
 allSpritesGroup = pygame.sprite.Group()
 playerGroup = pygame.sprite.Group()
 playerGroup.add(player)
 bulletsGroup = pygame.sprite.Group()
 enemiesGroup = pygame.sprite.Group()
+enemiesGroup.add(enemy)
+allSpritesGroup.add(enemy)
 allSpritesGroup.add(player)
-enemiesGroup.add(kamikaze)
-allSpritesGroup.add(kamikaze)
 
 background = pygame.transform.scale(pygame.image.load("./Sprites/pexels-instawalli-176851.jpg").convert(), (screenWidth, screenHeight))
 
@@ -249,6 +268,7 @@ while not endTheGame:
     screen.blit(background, (0,0))
     allSpritesGroup.draw(screen)
     allSpritesGroup.update()
+    
     if checkIfPlayerGotHit(playerGroup, enemiesGroup): endTheGame = True
     checkIfEnemiesGotHit(enemiesGroup, bulletsGroup)
     pygame.display.update()
