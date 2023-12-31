@@ -19,8 +19,9 @@ class EnemyGenerator():
     def __init__(self):
         self.maxNumberOfShooters = 1
         self.maxNumberOfKamikazes = 1
-        self.timeForIncreaseMaxShooters = 19
+        self.timeForIncreaseMaxShooters = 21
         self.timeForIncreaseMaxKamikazes = 15
+        self.timeForAnotherAsteroid = 15
         self.currentNumberOfShooters = 0
         self.currentNumberOfKamikazes = 0
         self.numberOfAnyEnemiesKilled = 0
@@ -28,11 +29,25 @@ class EnemyGenerator():
         self.numberOfKamikazesKilled = 0
         self.lastShooterIncreaseTime = pygame.time.get_ticks()
         self.lastKamikazeIncreaseTime = pygame.time.get_ticks()
+        self.lastAsteroidCreationTime = pygame.time.get_ticks()
 
     def generateRandomPositionOffScreen(self):
         x = random.choice([int(random.uniform(-150, screenWidth - 10)), int(random.uniform(screenWidth + 10, screenWidth + 150))])
-        y = random.choice([int(random.uniform(screenHeight - 150, screenHeight + 300)), int(random.uniform(300 - screenHeight, 100 - screenHeight)) ])
-        print(x, y)
+        y = random.choice([int(random.uniform(screenHeight + 100, screenHeight + 300)), int(random.uniform(300 - screenHeight, 100 - screenHeight)) ])
+        
+        # if x >= 0 and x <= screenWidth: caso queira que inimigos surjam pelos lados também
+        #     y = random.choice([int(random.uniform(screenHeight + 100, screenHeight + 300)), int(random.uniform(300 - screenHeight, 100 - screenHeight)) ])
+        # else:
+        #     y = random.choice([int(random.uniform(screenHeight / 3, screenHeight + 300)), int(random.uniform(300 - screenHeight, 100 - screenHeight)) ])
+        return (x, y)
+    def generateRandomPositionOffScreenForAsteroid(self):
+        x = random.choice([int(random.uniform(-400, screenWidth - 10)), int(random.uniform(screenWidth + 10, screenWidth + 400))])
+        
+        if x >= 0 and x <= screenWidth:
+            y = random.choice([int(random.uniform(screenHeight + 100, screenHeight + 400)), int(random.uniform(300 - screenHeight, 400 - screenHeight)) ])
+        else:
+            y = int(random.uniform(-400, screenHeight + 400))
+        
         return (x, y)
     def createShootPoint(self):
         x = int(random.uniform(40, screenWidth - 40))
@@ -51,12 +66,22 @@ class EnemyGenerator():
         allSpritesGroup.add(kamikaze)
         enemiesGroup.add(kamikaze)
     def createAsteroid(self):
-        pass
-    def increaseMaxEnemies(self):
-        # Aumenta o número máximo de inimigos
-        self.maxNumberOfShooters += 1
-        self.maxNumberOfKamikazes += 1
-        print(f"Max enemies increased: {self.maxNumberOfShooters} shooters, {self.maxNumberOfKamikazes} kamikazes")
+        x, y = self.generateRandomPositionOffScreenForAsteroid()
+        print(x,y)
+        namesOfAsteroidsSprites = ["Asteroid1.png"]
+        chosenSpriteName = random.choice(namesOfAsteroidsSprites)
+        playerCoordinates = player.playerPosition
+        deltaX = playerCoordinates[0] - x
+        deltaY = playerCoordinates[1] - y
+
+        angle = math.degrees(math.atan2(deltaY, deltaX))
+        speed = random.uniform(0.9, 3.5)
+        asteroid = Asteroid(x, y, angle, speed, chosenSpriteName, 0.17)
+
+        allSpritesGroup.add(asteroid)
+        asteroidsGroup.add(asteroid)
+
+        
     def update(self):
         currentTime = pygame.time.get_ticks()
 
@@ -70,12 +95,14 @@ class EnemyGenerator():
             print(f"Número máximo de shooters aumentado: {self.maxNumberOfShooters}")
             self.lastShooterIncreaseTime = currentTime
 
-        # Verifica se passou tempo suficiente para aumentar o número de kamikazes
         if (currentTime - self.lastKamikazeIncreaseTime) / 1000 >= self.timeForIncreaseMaxKamikazes:
             self.maxNumberOfKamikazes += 1
             print(f"Número máximo de kamikazes aumentado: {self.maxNumberOfKamikazes}")
             self.lastKamikazeIncreaseTime = currentTime
-
+        if (currentTime - self.lastAsteroidCreationTime) / 1000 >= self.timeForAnotherAsteroid:
+            self.createAsteroid()
+            print("Asteroide Criado")
+            self.lastAsteroidCreationTime = currentTime
         
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -88,6 +115,7 @@ class Player(pygame.sprite.Sprite):
         self.timeOfLastShot = 0
         self.shotCooldown = fps / 3.5
         self.speed = 5
+        self.shieldsOn = False
 
     def userInput(self):
         self.velocityX = 0
@@ -134,11 +162,23 @@ class Player(pygame.sprite.Sprite):
         bulletsGroup.add(bullet)
         allSpritesGroup.add(bullet)
         playerShotSound.play()
-
+    
+    def createShields(self):
+        pass
+    
     def update(self):
         self.userInput()
         self.move()
         self.playerRotation()
+        if self.playerPosition[0] < -10:
+            self.playerPosition[0] = screenWidth + 7 
+        if self.playerPosition[0] > screenWidth + 10:
+            self.playerPosition[0] = 7
+        if self.playerPosition[1] < -10:
+            self.playerPosition[1] = screenHeight + 7
+        if self.playerPosition[1] > screenHeight + 10:
+            self.playerPosition[1] = 7
+        self.rect.center = self.playerPosition
         pygame.draw.rect(screen, "red", player.rect, width=2)
         self.timeOfLastShot += 1
 
@@ -146,13 +186,13 @@ class Bullet(pygame.sprite.Sprite):
     def __init__(self, startPositionX, startPositionY, angle):
         super().__init__()
         self.startPositionX, self.startPositionY, self.angle = startPositionX, startPositionY, angle
-        self.x, self.y = self.startPositionX, self.startPositionY
+        self.position = pygame.math.Vector2(self.startPositionX, self.startPositionY)
         self.image = pygame.image.load("./Sprites/Bullet.png").convert_alpha()
         self.image = pygame.transform.rotozoom(self.image, 0, 0.03)
         self.transparencyColor = self.image.get_at((0,0))
         self.image.set_colorkey(self.transparencyColor)
         self.rect = self.image.get_rect()
-        self.rect.center = (self.x, self.y)
+        self.rect.center = (self.position[0], self.position[1])
         self.speed = 9
         self.velocityY = math.sin(self.angle * (2 * math.pi / 360)) * self.speed
         self.velocityX = math.cos(self.angle * (2 * math.pi / 360)) * self.speed
@@ -160,13 +200,15 @@ class Bullet(pygame.sprite.Sprite):
         self.age = 0
 
     def move(self):
-        self.x += self.velocityX
-        self.y += self.velocityY
+        self.position[0] += self.velocityX
+        self.position[1] += self.velocityY
 
-        self.rect.x, self.rect.y = self.x, self.y
+        self.rect.x, self.rect.y = self.position[0], self.position[1]
     def getOld(self):
         self.age += 1
-        if self.age >= self.lifetime: self.kill()
+        if self.age >= self.lifetime: self.die()
+    def die(self):
+        self.kill()
     def update(self):
         self.move()
         self.getOld()
@@ -232,6 +274,8 @@ class EnemyShooter(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.position)
     def die(self):
         enemyGenerator.currentNumberOfShooters -= 1
+        enemyGenerator.numberOfAnyEnemiesKilled += 1
+        enemyGenerator.numberOfShootersKilled += 1
         self.kill()
     def update(self):
         if int(self.position[0]) != int(self.shootPoint[0]) and  int(self.position[1]) != int(self.shootPoint[1]):
@@ -239,7 +283,6 @@ class EnemyShooter(pygame.sprite.Sprite):
         pygame.draw.rect(screen, "red", self.rect, width=2)
         self.rotateToPlayer()
         if abs(self.position[0] - self.shootPoint[0]) <= self.distanceToSPToShoot and abs(self.position[1] - self.shootPoint[1]) <= self.distanceToSPToShoot:
-            print("C")
             self.tryToShoot()
         self.timeOfLastShot += 1
 
@@ -275,10 +318,45 @@ class EnemyKamikaze(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.position)
     def die(self):
         enemyGenerator.currentNumberOfKamikazes -= 1
-        print("morri")
+        enemyGenerator.numberOfAnyEnemiesKilled += 1
+        enemyGenerator.numberOfKamikazesKilled += 1
         self.kill()
     def update(self):
         self.rotateAndMoveToPlayer()
+        pygame.draw.rect(screen, "red", self.rect, width=2)
+
+class Asteroid(pygame.sprite.Sprite):
+    def __init__(self, startPositionX, startPositionY, angle, speed, imageName, scale):
+        super().__init__()
+        self.startPositionX, self.startPositionY, self.angle = startPositionX, startPositionY, angle
+        self.position = pygame.math.Vector2(self.startPositionX, self.startPositionY)
+        self.image = pygame.image.load(f"./Sprites/{imageName}").convert_alpha()
+        self.image = pygame.transform.rotozoom(self.image, 0, scale)
+        self.transparencyColor = self.image.get_at((0,0))
+        self.image.set_colorkey(self.transparencyColor)
+        self.rect = self.image.get_rect()
+        self.rect.center = (self.position[0], self.position[1])
+        self.speed = speed
+        self.velocityY = math.sin(self.angle * (2 * math.pi / 360)) * self.speed
+        self.velocityX = math.cos(self.angle * (2 * math.pi / 360)) * self.speed
+    def move(self):
+        self.position[0] += self.velocityX
+        self.position[1] += self.velocityY
+
+        self.rect.x, self.rect.y = self.position[0], self.position[1]
+    def die(self):
+        print("morri")
+        self.kill()
+    def update(self):
+        self.move()
+        if self.position[0] < -1000:
+            self.die()
+        if self.position[0] > screenWidth + 1000:
+            self.die()
+        if self.position[1] < -1000:
+            self.die()
+        if self.position[1] > screenHeight + 1000:
+            self.die()
         pygame.draw.rect(screen, "red", self.rect, width=2)
 
 def writeSomething(fontstyle, fontsize, textContent, color, x, y, screen):
@@ -286,27 +364,51 @@ def writeSomething(fontstyle, fontsize, textContent, color, x, y, screen):
      text = font.render(f"{textContent}", True, color)
      screen.blit(text, [x, y])
 
-def checkIfPlayerGotHit(playerGroup, enemiesGroup):
+def checkIfPlayerGotHitByEnemies(playerGroup, enemiesGroup):
     collisions = pygame.sprite.groupcollide(enemiesGroup, playerGroup, False, False)
     if collisions: return True
     else: return False
 
-def checkIfEnemiesGotHit(enemiesGroup, bulletsGroup):
+def checkIfPlayerGotHitByAsteroids(playerGroup, asteroidsGroup):
+    collisions = pygame.sprite.groupcollide(asteroidsGroup, playerGroup, False, False)
+    if collisions: return True
+    else: return False
+
+def checkIfEnemiesGotHitByBullets(enemiesGroup, bulletsGroup):
     collisions = pygame.sprite.groupcollide(enemiesGroup, bulletsGroup, False, True)
     if collisions: 
         for enemy, bullet in collisions.items():
-            enemy.die()
+            enemyX, enemyY = enemy.position
+            if ((enemyX >= 0 and enemyX <= screenWidth) and (enemyY >= 0 and enemyY <= screenWidth)):
+                enemy.die()
+
+def checkIfEnemiesGotHitByAsteroids(enemiesGroup, asteroidsGroup):
+    collisions = pygame.sprite.groupcollide(enemiesGroup, asteroidsGroup, False, False)
+    if collisions: 
+        print("CAVAlo")
+        for enemy, asteroid in collisions.items():
+            enemyX, enemyY = enemy.position
+            if ((enemyX >= 0 and enemyX <= screenWidth) and (enemyY >= 0 and enemyY <= screenWidth)):
+                enemy.die()
+
+def checkIfAsteroidsGotHitByBullets(bulletsGroup, asteroidsGroup):
+    collisions = pygame.sprite.groupcollide(bulletsGroup, asteroidsGroup, False, False)
+    if collisions: 
+        for bullet, asteroid in collisions.items():
+            bullet.die()
+            
 
 player = Player()
+# asteroid = Asteroid(10,200, 45, 1, "Asteroid1.png", 0.12)
 enemyGenerator = EnemyGenerator()
-# enemy = EnemyShooter(200,200, (500,500))
 allSpritesGroup = pygame.sprite.Group()
 playerGroup = pygame.sprite.Group()
 playerGroup.add(player)
 bulletsGroup = pygame.sprite.Group()
 enemiesGroup = pygame.sprite.Group()
-# enemiesGroup.add(enemy)
-# allSpritesGroup.add(enemy)
+asteroidsGroup = pygame.sprite.Group()
+# asteroidsGroup.add(asteroid)
+# allSpritesGroup.add(asteroid)
 allSpritesGroup.add(player)
 
 background = pygame.transform.scale(pygame.image.load("./Sprites/pexels-instawalli-176851.jpg").convert(), (screenWidth, screenHeight))
@@ -321,8 +423,12 @@ while not endTheGame:
     allSpritesGroup.draw(screen)
     allSpritesGroup.update()
     enemyGenerator.update()
-    if checkIfPlayerGotHit(playerGroup, enemiesGroup): endTheGame = True
-    checkIfEnemiesGotHit(enemiesGroup, bulletsGroup)
+    if checkIfPlayerGotHitByEnemies(playerGroup, enemiesGroup) or checkIfPlayerGotHitByAsteroids(playerGroup, asteroidsGroup):
+        endTheGame = True
+    checkIfEnemiesGotHitByBullets(enemiesGroup, bulletsGroup)
+    checkIfEnemiesGotHitByAsteroids(enemiesGroup, asteroidsGroup)
+    checkIfAsteroidsGotHitByBullets(bulletsGroup, asteroidsGroup)
+    writeSomething("Roboto", 38, f"Enemies Destroyed: {enemyGenerator.numberOfAnyEnemiesKilled}", (255,255,255), 5,5, screen)
     pygame.display.update()
     clock.tick(fps)
 
