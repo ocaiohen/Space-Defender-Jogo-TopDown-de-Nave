@@ -3,6 +3,7 @@ from pygame import mixer
 import math
 import random
 
+
 pygame.init()
 
 screenWidth = 1280
@@ -14,6 +15,7 @@ fps = 60
 mixer.init()
 playerShotSound = mixer.Sound("./Sounds/170161__timgormly__8-bit-laser.mp3")
 enemyShooterSound = mixer.Sound("./Sounds/49242__zerolagtime__tape_slow5 reverb wav.wav")
+shieldSound = mixer.Sound("./Sounds/322875__thedonkey__sci-fi-door.mp3")
 
 class EnemyGenerator():
     def __init__(self):
@@ -114,10 +116,24 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=self.playerPosition)
         self.timeOfLastShot = 0
         self.shotCooldown = fps / 3.5
+        self.shieldCooldown = 10 # segundos
+        self.timeOfLastShieldActivation = pygame.time.get_ticks()
         self.speed = 5
         self.shieldsOn = False
+        self.endTheGame = False
 
+    def canShield(self):
+        timeEnoughtToShield = False
+        if (self.currentTime - self.timeOfLastShieldActivation) / 1000 >= self.shieldCooldown:
+            timeEnoughtToShield = True
+
+        if self.shieldsOn == False and timeEnoughtToShield:
+            return True
+        else:
+            return False
     def userInput(self):
+        
+
         self.velocityX = 0
         self.velocityY = 0
 
@@ -139,6 +155,10 @@ class Player(pygame.sprite.Sprite):
         if pygame.mouse.get_pressed() == (1, 0, 0) and self.timeOfLastShot >= self.shotCooldown:
             self.shoot()
             self.timeOfLastShot = 0
+
+        if (pygame.mouse.get_pressed() == (0,0,1) or keys[pygame.K_SPACE]) and self.canShield():
+            print("Criando")
+            self.createShield()
 
     def move(self):
         self.playerPosition += pygame.math.Vector2(self.velocityX, self.velocityY)
@@ -163,10 +183,18 @@ class Player(pygame.sprite.Sprite):
         allSpritesGroup.add(bullet)
         playerShotSound.play()
     
-    def createShields(self):
-        pass
-    
+    def createShield(self):
+        shieldSound.play()
+        shield = Shield()
+        self.shieldsOn = True
+        allSpritesGroup.add(shield)
+        shieldsGroup.add(shield)
+        self.timeOfLastShieldActivation = pygame.time.get_ticks()
+    def getHit(self):
+        if not self.shieldsOn:
+            self.endTheGame = True
     def update(self):
+        self.currentTime = pygame.time.get_ticks()
         self.userInput()
         self.move()
         self.playerRotation()
@@ -187,10 +215,10 @@ class Bullet(pygame.sprite.Sprite):
         super().__init__()
         self.startPositionX, self.startPositionY, self.angle = startPositionX, startPositionY, angle
         self.position = pygame.math.Vector2(self.startPositionX, self.startPositionY)
-        self.image = pygame.image.load("./Sprites/Bullet.png").convert_alpha()
-        self.image = pygame.transform.rotozoom(self.image, 0, 0.03)
-        self.transparencyColor = self.image.get_at((0,0))
-        self.image.set_colorkey(self.transparencyColor)
+        self.image = pygame.image.load("./Sprites/Bullet 2.0.png").convert_alpha()
+        self.image = pygame.transform.rotozoom(self.image, 0, 0.025)
+        # self.transparencyColor = self.image.get_at((0,0))
+        # self.image.set_colorkey(self.transparencyColor)
         self.rect = self.image.get_rect()
         self.rect.center = (self.position[0], self.position[1])
         self.speed = 9
@@ -212,6 +240,34 @@ class Bullet(pygame.sprite.Sprite):
     def update(self):
         self.move()
         self.getOld()
+
+class Shield(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.position = player.playerPosition
+        self.image = pygame.image.load("./Sprites/Shield.png").convert_alpha()
+        self.image = pygame.transform.rotozoom(self.image, 0, 0.4)
+        self.transparencyColor = self.image.get_at((int(self.image.get_width() / 2), int(self.image.get_height() / 2)))
+        self.image.set_colorkey(self.transparencyColor)
+        self.rect = self.image.get_rect()
+        self.rect.center = (self.position[0], self.position[1])
+        self.lifeTime = 3 # em segundos
+        self.age = pygame.time.get_ticks() / 1000
+    def moveWithPlayer(self):
+        self.position = player.playerPosition
+        self.rect.center = (self.position[0], self.position[1])
+    def die(self):
+        player.shieldsOn = False
+        self.kill()
+    def update(self):
+        currentTime = pygame.time.get_ticks() / 1000
+
+        if currentTime - self.age >= self.lifeTime:
+            self.die()
+
+        self.moveWithPlayer()
+        pygame.draw.rect(screen, "red", self.rect, width=2)
+        
 class EnemyBullet(Bullet):
     def __init__(self, startPositionX, startPositionY, angle):
         super().__init__(startPositionX, startPositionY, angle)
@@ -366,13 +422,14 @@ def writeSomething(fontstyle, fontsize, textContent, color, x, y, screen):
 
 def checkIfPlayerGotHitByEnemies(playerGroup, enemiesGroup):
     collisions = pygame.sprite.groupcollide(enemiesGroup, playerGroup, False, False)
-    if collisions: return True
-    else: return False
+    if collisions: 
+        player.getHit()
+    
 
 def checkIfPlayerGotHitByAsteroids(playerGroup, asteroidsGroup):
     collisions = pygame.sprite.groupcollide(asteroidsGroup, playerGroup, False, False)
-    if collisions: return True
-    else: return False
+    if collisions: 
+        player.getHit()
 
 def checkIfEnemiesGotHitByBullets(enemiesGroup, bulletsGroup):
     collisions = pygame.sprite.groupcollide(enemiesGroup, bulletsGroup, False, True)
@@ -385,17 +442,31 @@ def checkIfEnemiesGotHitByBullets(enemiesGroup, bulletsGroup):
 def checkIfEnemiesGotHitByAsteroids(enemiesGroup, asteroidsGroup):
     collisions = pygame.sprite.groupcollide(enemiesGroup, asteroidsGroup, False, False)
     if collisions: 
-        print("CAVAlo")
         for enemy, asteroid in collisions.items():
             enemyX, enemyY = enemy.position
             if ((enemyX >= 0 and enemyX <= screenWidth) and (enemyY >= 0 and enemyY <= screenWidth)):
                 enemy.die()
 
 def checkIfAsteroidsGotHitByBullets(bulletsGroup, asteroidsGroup):
-    collisions = pygame.sprite.groupcollide(bulletsGroup, asteroidsGroup, False, False)
+    collisions = pygame.sprite.groupcollide(bulletsGroup, asteroidsGroup, True, False)
     if collisions: 
         for bullet, asteroid in collisions.items():
             bullet.die()
+            
+def checkIfEnemiesGotHitByShields(shieldsGroup, enemiesGroup):
+    collisions = pygame.sprite.groupcollide(shieldsGroup, enemiesGroup, False, False)
+    if collisions:
+        for shield, enemies in collisions.items():
+            for enemy in enemies:
+                enemy.die()
+
+def checkIfAsteroidsGotHitByShields(shieldsGroup, asteroidsGroup):
+    collisions = pygame.sprite.groupcollide(shieldsGroup, asteroidsGroup, False, False)
+    if collisions:
+        for shield, asteroids in collisions.items():
+            for asteroid in asteroids:
+                asteroid.die()
+
             
 
 player = Player()
@@ -407,6 +478,7 @@ playerGroup.add(player)
 bulletsGroup = pygame.sprite.Group()
 enemiesGroup = pygame.sprite.Group()
 asteroidsGroup = pygame.sprite.Group()
+shieldsGroup = pygame.sprite.Group()
 # asteroidsGroup.add(asteroid)
 # allSpritesGroup.add(asteroid)
 allSpritesGroup.add(player)
@@ -423,12 +495,23 @@ while not endTheGame:
     allSpritesGroup.draw(screen)
     allSpritesGroup.update()
     enemyGenerator.update()
-    if checkIfPlayerGotHitByEnemies(playerGroup, enemiesGroup) or checkIfPlayerGotHitByAsteroids(playerGroup, asteroidsGroup):
+    checkIfPlayerGotHitByEnemies(playerGroup, enemiesGroup)
+    checkIfPlayerGotHitByAsteroids(playerGroup, asteroidsGroup)
+    if player.endTheGame:
         endTheGame = True
     checkIfEnemiesGotHitByBullets(enemiesGroup, bulletsGroup)
     checkIfEnemiesGotHitByAsteroids(enemiesGroup, asteroidsGroup)
     checkIfAsteroidsGotHitByBullets(bulletsGroup, asteroidsGroup)
+    checkIfAsteroidsGotHitByShields(shieldsGroup, asteroidsGroup)
+    checkIfEnemiesGotHitByShields(shieldsGroup, enemiesGroup)
     writeSomething("Roboto", 38, f"Enemies Destroyed: {enemyGenerator.numberOfAnyEnemiesKilled}", (255,255,255), 5,5, screen)
+    if player.canShield():
+        writeSomething("Roboto", 38, "Shields: Ready", (255,255,255), 5, screenHeight - 50, screen)
+    elif player.shieldsOn:
+        writeSomething("Roboto", 38, "Shields: On", (255,255,255), 5, screenHeight - 50, screen)
+    elif player.canShield() == False:
+        writeSomething("Roboto", 38, "Shields: Preparing", (255,255,255), 5, screenHeight - 50, screen)
+
     pygame.display.update()
     clock.tick(fps)
 

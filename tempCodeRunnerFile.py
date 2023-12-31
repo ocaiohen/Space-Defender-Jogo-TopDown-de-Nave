@@ -1,0 +1,1 @@
+self.lastTimeOfShieldActivation = pygame.time.get_ticks()
