@@ -3,7 +3,6 @@ from pygame import mixer
 import math
 import random
 
-
 pygame.init()
 
 screenWidth = 1280
@@ -16,6 +15,7 @@ mixer.init()
 playerShotSound = mixer.Sound("./Sounds/170161__timgormly__8-bit-laser.mp3")
 enemyShooterSound = mixer.Sound("./Sounds/49242__zerolagtime__tape_slow5 reverb wav.wav")
 shieldSound = mixer.Sound("./Sounds/322875__thedonkey__sci-fi-door.mp3")
+explosionSound = mixer.Sound("./Sounds/369524__johandeecke__long-decay-explosion-1.wav")
 
 class EnemyGenerator():
     def __init__(self):
@@ -69,7 +69,6 @@ class EnemyGenerator():
         enemiesGroup.add(kamikaze)
     def createAsteroid(self):
         x, y = self.generateRandomPositionOffScreenForAsteroid()
-        print(x,y)
         namesOfAsteroidsSprites = ["Asteroid1.png"]
         chosenSpriteName = random.choice(namesOfAsteroidsSprites)
         playerCoordinates = player.playerPosition
@@ -105,7 +104,28 @@ class EnemyGenerator():
             self.createAsteroid()
             print("Asteroide Criado")
             self.lastAsteroidCreationTime = currentTime
-        
+
+# class EffectsGenerator():
+#     def generateExplosion(self, position):
+#         explosion = Explosion(position)
+#         pass
+#     def update(self):
+#         pass
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, position, scale):
+        super().__init__()
+        self.image = pygame.image.load("./Sprites/ex.png").convert_alpha()
+        self.image = pygame.transform.rotozoom(self.image, 0, scale)
+        self.rect = self.image.get_rect(center=position)
+        self.lifetime = 0.7 * fps  # 1.5 segundos em frames
+        self.age = 0
+        explosionSound.play()
+
+    def update(self):
+        self.age += 1
+        if self.age >= self.lifetime:
+            self.kill()
+
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -157,7 +177,6 @@ class Player(pygame.sprite.Sprite):
             self.timeOfLastShot = 0
 
         if (pygame.mouse.get_pressed() == (0,0,1) or keys[pygame.K_SPACE]) and self.canShield():
-            print("Criando")
             self.createShield()
 
     def move(self):
@@ -332,6 +351,8 @@ class EnemyShooter(pygame.sprite.Sprite):
         enemyGenerator.currentNumberOfShooters -= 1
         enemyGenerator.numberOfAnyEnemiesKilled += 1
         enemyGenerator.numberOfShootersKilled += 1
+        explosion = Explosion(self.rect.center, 1.1)
+        allSpritesGroup.add(explosion)
         self.kill()
     def update(self):
         if int(self.position[0]) != int(self.shootPoint[0]) and  int(self.position[1]) != int(self.shootPoint[1]):
@@ -376,6 +397,8 @@ class EnemyKamikaze(pygame.sprite.Sprite):
         enemyGenerator.currentNumberOfKamikazes -= 1
         enemyGenerator.numberOfAnyEnemiesKilled += 1
         enemyGenerator.numberOfKamikazesKilled += 1
+        explosion = Explosion(self.rect.center, 1)
+        allSpritesGroup.add(explosion)
         self.kill()
     def update(self):
         self.rotateAndMoveToPlayer()
@@ -401,7 +424,8 @@ class Asteroid(pygame.sprite.Sprite):
 
         self.rect.x, self.rect.y = self.position[0], self.position[1]
     def die(self):
-        print("morri")
+        explosion = Explosion(self.rect.center, 1.2)
+        allSpritesGroup.add(explosion)
         self.kill()
     def update(self):
         self.move()
