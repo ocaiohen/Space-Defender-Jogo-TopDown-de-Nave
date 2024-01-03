@@ -355,7 +355,9 @@ class EnemyShooter(pygame.sprite.Sprite):
         allSpritesGroup.add(explosion)
         self.kill()
     def update(self):
-        if int(self.position[0]) != int(self.shootPoint[0]) and  int(self.position[1]) != int(self.shootPoint[1]):
+        # if int(self.position[0]) != int(self.shootPoint[0]) and  int(self.position[1]) != int(self.shootPoint[1]):
+        #     self.moveToShootPoint()
+        if abs(self.position[0] - self.shootPoint[0]) > 2 and abs(self.position[1] - self.shootPoint[1]) > 2:
             self.moveToShootPoint()
         pygame.draw.rect(screen, "red", self.rect, width=2)
         self.rotateToPlayer()
@@ -444,6 +446,12 @@ def writeSomething(fontstyle, fontsize, textContent, color, x, y, screen):
      text = font.render(f"{textContent}", True, color)
      screen.blit(text, [x, y])
 
+def write_centered_text(fontstyle, fontsize, text_content, color, screen):
+    font = pygame.font.SysFont(fontstyle, fontsize)
+    text = font.render(text_content, True, color)
+    text_rect = text.get_rect(center=(screenWidth // 2, screenHeight // 2))
+    screen.blit(text, text_rect)
+
 def checkIfPlayerGotHitByEnemies(playerGroup, enemiesGroup):
     collisions = pygame.sprite.groupcollide(enemiesGroup, playerGroup, False, False)
     if collisions: 
@@ -491,7 +499,12 @@ def checkIfAsteroidsGotHitByShields(shieldsGroup, asteroidsGroup):
             for asteroid in asteroids:
                 asteroid.die()
 
-            
+
+
+background = pygame.transform.scale(pygame.image.load("./Sprites/pexels-instawalli-176851.jpg").convert(), (screenWidth, screenHeight))
+
+endTheGame = False
+gameOver = False
 
 player = Player()
 # asteroid = Asteroid(10,200, 45, 1, "Asteroid1.png", 0.12)
@@ -510,33 +523,80 @@ allSpritesGroup.add(player)
 background = pygame.transform.scale(pygame.image.load("./Sprites/pexels-instawalli-176851.jpg").convert(), (screenWidth, screenHeight))
 
 endTheGame = False
+gameOver = False
+
+def resetTheGame():
+    global player, enemyGenerator, allSpritesGroup, playerGroup, bulletsGroup, enemiesGroup, asteroidsGroup, shieldsGroup
+    player = Player()
+    enemyGenerator = EnemyGenerator()
+    player = Player()
+    # asteroid = Asteroid(10,200, 45, 1, "Asteroid1.png", 0.12)
+    enemyGenerator = EnemyGenerator()
+    allSpritesGroup.empty()
+    playerGroup.empty()
+    playerGroup.add(player)
+    bulletsGroup.empty()
+    enemiesGroup.empty()
+    asteroidsGroup.empty()
+    shieldsGroup.empty()
+    # asteroidsGroup.add(asteroid)
+    # allSpritesGroup.add(asteroid)
+    allSpritesGroup.add(player)
+
+    
+
 while not endTheGame:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+    # for event in pygame.event.get():
+    #     if event.type == pygame.QUIT:
+    #         endTheGame = True
+
+    while not gameOver and not endTheGame:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                endTheGame = True
+
+        screen.blit(background, (0,0))
+        allSpritesGroup.draw(screen)
+        allSpritesGroup.update()
+        enemyGenerator.update()
+        checkIfPlayerGotHitByEnemies(playerGroup, enemiesGroup)
+        checkIfPlayerGotHitByAsteroids(playerGroup, asteroidsGroup)
+        if player.endTheGame:
+            gameOver = True
+        checkIfEnemiesGotHitByBullets(enemiesGroup, bulletsGroup)
+        checkIfEnemiesGotHitByAsteroids(enemiesGroup, asteroidsGroup)
+        checkIfAsteroidsGotHitByBullets(bulletsGroup, asteroidsGroup)
+        checkIfAsteroidsGotHitByShields(shieldsGroup, asteroidsGroup)
+        checkIfEnemiesGotHitByShields(shieldsGroup, enemiesGroup)
+        writeSomething("Roboto", 38, f"Enemies Destroyed: {enemyGenerator.numberOfAnyEnemiesKilled}", (255,255,255), 5,5, screen)
+        if player.canShield():
+            writeSomething("Roboto", 38, "Shields: Ready", (255,255,255), 5, screenHeight - 50, screen)
+        elif player.shieldsOn:
+            writeSomething("Roboto", 38, "Shields: On", (255,255,255), 5, screenHeight - 50, screen)
+        elif player.canShield() == False:
+            writeSomething("Roboto", 38, "Shields: Preparing", (255,255,255), 5, screenHeight - 50, screen)
+
+        
+        pygame.display.update()
+        clock.tick(fps)
+    
+    while gameOver and not endTheGame:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                endTheGame = True
+        
+        keys = pygame.key.get_pressed()
+
+        if keys[pygame.K_r]:
+            resetTheGame()
+            endTheGame = False
+            gameOver = False    
+        elif keys[pygame.K_ESCAPE]:
             endTheGame = True
-
-    screen.blit(background, (0,0))
-    allSpritesGroup.draw(screen)
-    allSpritesGroup.update()
-    enemyGenerator.update()
-    checkIfPlayerGotHitByEnemies(playerGroup, enemiesGroup)
-    checkIfPlayerGotHitByAsteroids(playerGroup, asteroidsGroup)
-    if player.endTheGame:
-        endTheGame = True
-    checkIfEnemiesGotHitByBullets(enemiesGroup, bulletsGroup)
-    checkIfEnemiesGotHitByAsteroids(enemiesGroup, asteroidsGroup)
-    checkIfAsteroidsGotHitByBullets(bulletsGroup, asteroidsGroup)
-    checkIfAsteroidsGotHitByShields(shieldsGroup, asteroidsGroup)
-    checkIfEnemiesGotHitByShields(shieldsGroup, enemiesGroup)
-    writeSomething("Roboto", 38, f"Enemies Destroyed: {enemyGenerator.numberOfAnyEnemiesKilled}", (255,255,255), 5,5, screen)
-    if player.canShield():
-        writeSomething("Roboto", 38, "Shields: Ready", (255,255,255), 5, screenHeight - 50, screen)
-    elif player.shieldsOn:
-        writeSomething("Roboto", 38, "Shields: On", (255,255,255), 5, screenHeight - 50, screen)
-    elif player.canShield() == False:
-        writeSomething("Roboto", 38, "Shields: Preparing", (255,255,255), 5, screenHeight - 50, screen)
-
-    pygame.display.update()
-    clock.tick(fps)
-
+        screen.fill((0,0,0))
+        write_centered_text("Roboto", 72, "Game Over!", (255,255,255), screen)
+        writeSomething("Roboto", 36, 'Press "r" to restart the game', (255,255,255), screenWidth - 350, screenHeight - 30, screen)
+        writeSomething("Roboto", 36, 'Press "Esc" to exit the game', (255,255,255), 5, 5, screen)
+        pygame.display.update()
+        clock.tick(fps)
 pygame.quit()
