@@ -17,6 +17,7 @@ enemyShooterSound = mixer.Sound("./Sounds/49242__zerolagtime__tape_slow5 reverb 
 shieldSound = mixer.Sound("./Sounds/322875__thedonkey__sci-fi-door.mp3")
 explosionSound = mixer.Sound("./Sounds/369524__johandeecke__long-decay-explosion-1.wav")
 
+
 class EnemyGenerator():
     def __init__(self):
         self.maxNumberOfShooters = 1
@@ -226,7 +227,7 @@ class Player(pygame.sprite.Sprite):
         if self.playerPosition[1] > screenHeight + 10:
             self.playerPosition[1] = 7
         self.rect.center = self.playerPosition
-        pygame.draw.rect(screen, "red", player.rect, width=2)
+        # pygame.draw.rect(screen, "red", player.rect, width=2)
         self.timeOfLastShot += 1
 
 class Bullet(pygame.sprite.Sprite):
@@ -285,7 +286,7 @@ class Shield(pygame.sprite.Sprite):
             self.die()
 
         self.moveWithPlayer()
-        pygame.draw.rect(screen, "red", self.rect, width=2)
+        # pygame.draw.rect(screen, "red", self.rect, width=2)
         
 class EnemyBullet(Bullet):
     def __init__(self, startPositionX, startPositionY, angle):
@@ -359,7 +360,7 @@ class EnemyShooter(pygame.sprite.Sprite):
         #     self.moveToShootPoint()
         if abs(self.position[0] - self.shootPoint[0]) > 2 and abs(self.position[1] - self.shootPoint[1]) > 2:
             self.moveToShootPoint()
-        pygame.draw.rect(screen, "red", self.rect, width=2)
+        # pygame.draw.rect(screen, "red", self.rect, width=2)
         self.rotateToPlayer()
         if abs(self.position[0] - self.shootPoint[0]) <= self.distanceToSPToShoot and abs(self.position[1] - self.shootPoint[1]) <= self.distanceToSPToShoot:
             self.tryToShoot()
@@ -404,7 +405,7 @@ class EnemyKamikaze(pygame.sprite.Sprite):
         self.kill()
     def update(self):
         self.rotateAndMoveToPlayer()
-        pygame.draw.rect(screen, "red", self.rect, width=2)
+        # pygame.draw.rect(screen, "red", self.rect, width=2)
 
 class Asteroid(pygame.sprite.Sprite):
     def __init__(self, startPositionX, startPositionY, angle, speed, imageName, scale):
@@ -439,7 +440,7 @@ class Asteroid(pygame.sprite.Sprite):
             self.die()
         if self.position[1] > screenHeight + 1000:
             self.die()
-        pygame.draw.rect(screen, "red", self.rect, width=2)
+        # pygame.draw.rect(screen, "red", self.rect, width=2)
 
 def writeSomething(fontstyle, fontsize, textContent, color, x, y, screen):
      font = pygame.font.SysFont(f"{fontstyle}", fontsize)
@@ -563,6 +564,11 @@ while not endTheGame:
         write_centered_text("Roboto", 72, 'Press "Space" to begin the game!', (255,255,255), screen)
         pygame.display.update()
         clock.tick(fps)
+    
+    mixer.music.load("./Sounds/You_Cant_Dodge_a_Laser_01.ogg")
+    mixer.music.set_volume(0.5)
+    mixer.music.play(-1)
+
     while not gameOver and not endTheGame and initTheGame:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
