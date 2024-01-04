@@ -567,7 +567,6 @@ while not endTheGame:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 endTheGame = True
-        print("Main game")
         screen.blit(background, (0,0))
         allSpritesGroup.draw(screen)
         allSpritesGroup.update()
@@ -594,7 +593,6 @@ while not endTheGame:
         clock.tick(fps)
     
     while gameOver and not endTheGame:
-        print("Game over")
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 endTheGame = True
