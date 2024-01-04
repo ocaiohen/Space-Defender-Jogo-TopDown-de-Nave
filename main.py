@@ -521,7 +521,9 @@ shieldsGroup = pygame.sprite.Group()
 allSpritesGroup.add(player)
 
 background = pygame.transform.scale(pygame.image.load("./Sprites/pexels-instawalli-176851.jpg").convert(), (screenWidth, screenHeight))
+menuBackground = pygame.transform.scale(pygame.image.load("./Sprites/Capa Jogo.png").convert(), (screenWidth, screenHeight))
 
+initTheGame = False
 endTheGame = False
 gameOver = False
 
@@ -543,18 +545,29 @@ def resetTheGame():
     # allSpritesGroup.add(asteroid)
     allSpritesGroup.add(player)
 
-    
+
 
 while not endTheGame:
-    # for event in pygame.event.get():
-    #     if event.type == pygame.QUIT:
-    #         endTheGame = True
-
-    while not gameOver and not endTheGame:
+    while not initTheGame and not endTheGame:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 endTheGame = True
-
+        
+        screen.blit(menuBackground, (0,0))
+        
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE]:
+            initTheGame = True
+        
+        
+        write_centered_text("Roboto", 72, 'Press "Space" to begin the game!', (255,255,255), screen)
+        pygame.display.update()
+        clock.tick(fps)
+    while not gameOver and not endTheGame and initTheGame:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                endTheGame = True
+        print("Main game")
         screen.blit(background, (0,0))
         allSpritesGroup.draw(screen)
         allSpritesGroup.update()
@@ -581,6 +594,7 @@ while not endTheGame:
         clock.tick(fps)
     
     while gameOver and not endTheGame:
+        print("Game over")
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 endTheGame = True
