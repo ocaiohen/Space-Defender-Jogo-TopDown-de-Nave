@@ -549,7 +549,7 @@ def resetTheGame():
 
 
 while not endTheGame:
-    while not initTheGame and not endTheGame:
+    while not initTheGame and not endTheGame: # menu de iniciar
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 endTheGame = True
@@ -569,7 +569,7 @@ while not endTheGame:
     mixer.music.set_volume(0.5)
     mixer.music.play(-1)
 
-    while not gameOver and not endTheGame and initTheGame:
+    while not gameOver and not endTheGame and initTheGame: #main game
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 endTheGame = True
@@ -597,14 +597,16 @@ while not endTheGame:
         
         pygame.display.update()
         clock.tick(fps)
-    
-    while gameOver and not endTheGame:
+    playerExplosion = Explosion(player.playerPosition, 1)
+    playerDeathExplosionGroup = pygame.sprite.Group()
+    playerDeathExplosionGroup.add(playerExplosion)
+    while gameOver and not endTheGame: # game over
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 endTheGame = True
         
         keys = pygame.key.get_pressed()
-
+        
         if keys[pygame.K_r]:
             resetTheGame()
             endTheGame = False
@@ -612,6 +614,8 @@ while not endTheGame:
         elif keys[pygame.K_ESCAPE]:
             endTheGame = True
         screen.fill((0,0,0))
+        playerExplosion.update()
+        playerDeathExplosionGroup.draw(screen)
         write_centered_text("Roboto", 72, "Game Over!", (255,255,255), screen)
         writeSomething("Roboto", 36, 'Press "r" to restart the game', (255,255,255), screenWidth - 350, screenHeight - 30, screen)
         writeSomething("Roboto", 36, 'Press "Esc" to exit the game', (255,255,255), 5, 5, screen)
