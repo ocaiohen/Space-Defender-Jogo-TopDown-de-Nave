@@ -94,16 +94,13 @@ class EnemyGenerator():
 
         if (currentTime - self.lastShooterIncreaseTime) / 1000 >= self.timeForIncreaseMaxShooters:
             self.maxNumberOfShooters += 1
-            print(f"Número máximo de shooters aumentado: {self.maxNumberOfShooters}")
             self.lastShooterIncreaseTime = currentTime
 
         if (currentTime - self.lastKamikazeIncreaseTime) / 1000 >= self.timeForIncreaseMaxKamikazes:
             self.maxNumberOfKamikazes += 1
-            print(f"Número máximo de kamikazes aumentado: {self.maxNumberOfKamikazes}")
             self.lastKamikazeIncreaseTime = currentTime
         if (currentTime - self.lastAsteroidCreationTime) / 1000 >= self.timeForAnotherAsteroid:
             self.createAsteroid()
-            print("Asteroide Criado")
             self.lastAsteroidCreationTime = currentTime
 
 # class EffectsGenerator():
