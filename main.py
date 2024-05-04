@@ -17,7 +17,6 @@ enemyShooterSound = mixer.Sound("./Sounds/49242__zerolagtime__tape_slow5 reverb 
 shieldSound = mixer.Sound("./Sounds/322875__thedonkey__sci-fi-door.mp3")
 explosionSound = mixer.Sound("./Sounds/369524__johandeecke__long-decay-explosion-1.wav")
 
-
 class EnemyGenerator():
     def __init__(self):
         self.maxNumberOfShooters = 1
@@ -83,7 +82,6 @@ class EnemyGenerator():
         allSpritesGroup.add(asteroid)
         asteroidsGroup.add(asteroid)
 
-        
     def update(self):
         currentTime = pygame.time.get_ticks()
 
@@ -94,16 +92,13 @@ class EnemyGenerator():
 
         if (currentTime - self.lastShooterIncreaseTime) / 1000 >= self.timeForIncreaseMaxShooters:
             self.maxNumberOfShooters += 1
-            print(f"Número máximo de shooters aumentado: {self.maxNumberOfShooters}")
             self.lastShooterIncreaseTime = currentTime
 
         if (currentTime - self.lastKamikazeIncreaseTime) / 1000 >= self.timeForIncreaseMaxKamikazes:
             self.maxNumberOfKamikazes += 1
-            print(f"Número máximo de kamikazes aumentado: {self.maxNumberOfKamikazes}")
             self.lastKamikazeIncreaseTime = currentTime
         if (currentTime - self.lastAsteroidCreationTime) / 1000 >= self.timeForAnotherAsteroid:
             self.createAsteroid()
-            print("Asteroide Criado")
             self.lastAsteroidCreationTime = currentTime
 
 # class EffectsGenerator():
@@ -500,8 +495,6 @@ def checkIfAsteroidsGotHitByShields(shieldsGroup, asteroidsGroup):
             for asteroid in asteroids:
                 asteroid.die()
 
-
-
 background = pygame.transform.scale(pygame.image.load("./Sprites/pexels-instawalli-176851.jpg").convert(), (screenWidth, screenHeight))
 
 endTheGame = False
@@ -545,8 +538,6 @@ def resetTheGame():
     # asteroidsGroup.add(asteroid)
     # allSpritesGroup.add(asteroid)
     allSpritesGroup.add(player)
-
-
 
 while not endTheGame:
     while not initTheGame and not endTheGame: # menu de iniciar
@@ -594,7 +585,6 @@ while not endTheGame:
         elif player.canShield() == False:
             writeSomething("Roboto", 38, "Shields: Preparing", (255,255,255), 5, screenHeight - 50, screen)
 
-        
         pygame.display.update()
         clock.tick(fps)
     playerExplosion = Explosion(player.playerPosition, 1)
